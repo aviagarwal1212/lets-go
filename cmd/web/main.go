@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"flag"
 	"html/template"
@@ -26,7 +27,7 @@ type application struct {
 }
 
 func main() {
-	addr := flag.String("addr", ":4000", "HTTP Network Address")
+	addr := flag.String("addr", ":4050", "HTTP Network Address")
 	dsn := flag.String("dsn", "web:pass@/snippetbox?parseTime=true", "MySQL Connection String")
 	flag.Parse()
 
@@ -49,6 +50,7 @@ func main() {
 	sessionManager := scs.New()
 	sessionManager.Store = mysqlstore.New(db)
 	sessionManager.Lifetime = 12 * time.Hour
+	sessionManager.Cookie.Secure = true
 
 	app := application{
 		errorLog: errorLog,
@@ -61,14 +63,23 @@ func main() {
 		sessionManager: sessionManager,
 	}
 
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+	}
+
 	srv := &http.Server{
-		Addr:     *addr,
-		ErrorLog: errorLog,
-		Handler:  app.routes(),
+		Addr:         *addr,
+		ErrorLog:     errorLog,
+		Handler:      app.routes(),
+		TLSConfig:    tlsConfig,
+		IdleTimeout:  1 * time.Minute,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 	infoLog.Printf("Starting server on %v", *addr)
-	err = srv.ListenAndServe()
-	errorLog.Fatal(err)
+	if err := srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem"); err != nil {
+		errorLog.Fatal(err)
+	}
 }
 
 func openDB(dsn string) (*sql.DB, error) {
