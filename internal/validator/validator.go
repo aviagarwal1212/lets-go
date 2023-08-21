@@ -1,17 +1,26 @@
 package validator
 
 import (
+	"regexp"
 	"strings"
 	"unicode/utf8"
 )
 
 type Validator struct {
-	FieldErrors map[string]string
+	NonFieldErrors []string
+	FieldErrors    map[string]string
 }
+
+var EmailRX = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 // Valid() returns true if the FieldError map doesn't contain any entries
 func (v *Validator) Valid() bool {
-	return len(v.FieldErrors) == 0
+	return len(v.FieldErrors) == 0 && len(v.NonFieldErrors) == 0
+}
+
+// AddNonFieldError() adds the error message to the NonFieldError slice
+func (v *Validator) AddNonFieldError(message string) {
+	v.NonFieldErrors = append(v.NonFieldErrors, message)
 }
 
 // AddFieldError(key, message) adds the error message to the FieldErrors map if key doesn't exist already
@@ -51,4 +60,14 @@ func PermittedInt(value int, permittedValues ...int) bool {
 	}
 
 	return false
+}
+
+// MinChars() return true if a value contains at least n characters
+func MinChars(value string, n int) bool {
+	return utf8.RuneCountInString(value) >= n
+}
+
+// Matches() returns true if a value matches a provided compiled regex
+func Matches(value string, regex *regexp.Regexp) bool {
+	return regex.MatchString(value)
 }

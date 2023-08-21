@@ -9,11 +9,13 @@ import (
 )
 
 type templateData struct {
-	CurrentYear int
-	Snippet     *models.Snippet
-	Snippets    []*models.Snippet
-	Form        any
-	Flash       string
+	CurrentYear     int
+	Snippet         *models.Snippet
+	Snippets        []*models.Snippet
+	Form            any
+	Flash           string
+	IsAuthenticated bool
+	CSRFToken       string
 }
 
 func humanDate(t time.Time) string {
@@ -49,17 +51,6 @@ func newTemplateCache() (map[string]*template.Template, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		// files := []string{
-		// 	"./ui/html/base.tmpl",
-		// 	"./ui/html/partials/nav.tmpl",
-		// 	page,
-		// }
-
-		// ts, err := template.ParseFiles(files...)
-		// if err != nil {
-		// 	return nil, err
-		// }
 
 		cache[name] = ts
 	}
